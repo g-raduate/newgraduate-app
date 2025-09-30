@@ -1,0 +1,9 @@
+@echo off
+cd /d "E:\Programing\newgraduate"
+echo Cleaning project...
+flutter clean
+echo Getting dependencies...
+flutter pub get
+echo Building debug APK...
+flutter build apk --debug
+pause
