@@ -31,6 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   String? _cachedBaseUrl;
+  // أخطاء الخادم لعرضها تحت الحقول (422)
+  String? _serverEmailError;
+  String? _serverPasswordError;
 
   @override
   void initState() {
@@ -143,7 +146,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       decoration:
-                          decoration('ادخل البريد هنا', icon: Icons.email),
+              decoration('ادخل البريد هنا', icon: Icons.email)
+                .copyWith(errorText: _serverEmailError),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'يرجى ادخال النص هنا'
                           : null,
@@ -169,6 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : Icons.visibility_off),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
+                        errorText: _serverPasswordError,
                       ),
                       validator: (v) => (v == null || v.isEmpty)
                           ? 'يرجى ادخال النص هنا'
@@ -210,6 +215,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 debugPrint('[Login] Using API Base: $base');
                                 // Prompt for location permission/service only if needed before showing the loading overlay
                                 await _maybePromptLocationPermission();
+                                // تنظيف أخطاء الخادم السابقة قبل المحاولة
+                                setState(() {
+                                  _serverEmailError = null;
+                                  _serverPasswordError = null;
+                                });
                                 setState(() => _loading = true);
                                 try {
                                   final loc = await _safeGetLocation();
@@ -236,8 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   if (!success) {
                                     if (!mounted) return;
                                     // حالة خاصة: البريد غير مؤكد
-                                    if (!authController.isEmailVerified &&
-                                        (authController.error != null)) {
+                                    if (authController.emailNotVerified) {
                                       final proceed = await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
@@ -292,9 +301,48 @@ class _LoginScreenState extends State<LoginScreen> {
                                       return;
                                     }
 
+                                    // 422: أخطاء التحقق الحقلية
+                                    final vErrs =
+                                        authController.validationErrors;
+                                    if (vErrs != null && vErrs.isNotEmpty) {
+                                      setState(() {
+                                        _serverEmailError =
+                                            vErrs['email']?.first;
+                                        _serverPasswordError =
+                                            vErrs['password']?.first;
+                                      });
+                                      final msg = authController.error ??
+                                          'يرجى التحقق من المدخلات';
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(msg),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    // 401: بيانات اعتماد غير صحيحة
+                                    final err = authController.error ?? '';
+                                    if (err.contains('Invalid credentials') ||
+                                        err.contains('غير صحيحة') ||
+                                        err.contains('Unauthenticated')) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'بيانات اعتماد غير صحيحة (إيميل أو كلمة مرور خاطئة)'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('فشل في تسجيل الدخول'),
+                                      SnackBar(
+                                        content: Text(authController.error ??
+                                            'فشل في تسجيل الدخول'),
                                         backgroundColor: Colors.red,
                                       ),
                                     );

@@ -11,7 +11,7 @@ class AppConstants {
   //   static const bool? underDevelopmentOverride = true;  // إيقاف الحماية
   //   static const bool? underDevelopmentOverride = false; // تشغيل الحماية
   //   static const bool? underDevelopmentOverride = null;  // اتبع الإعداد المخزن
-  static const bool? underDevelopmentOverride = false;
+  static const bool? underDevelopmentOverride = true;
 
   // مفاتيح التخزين المحلي
   static const String tokenKey = 'auth_token';

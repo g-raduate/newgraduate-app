@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:newgraduate/features/auth/data/auth_repository.dart';
 import 'package:newgraduate/services/api_client.dart'
-    show EmailNotVerifiedException;
+  show EmailNotVerifiedException, HttpException;
 import 'package:newgraduate/services/token_manager.dart';
 import 'package:newgraduate/services/student_service.dart';
 import 'package:newgraduate/services/cache_manager.dart';
@@ -19,6 +20,8 @@ class AuthController extends ChangeNotifier {
   bool _isEmailVerified = false;
   String? _userEmail;
   TokenManager? _tokenManager;
+  Map<String, List<String>>? _validationErrors; // لأخطاء 422 القادمة من الخادم
+  bool _emailNotVerified = false; // علم خاص بحالة 403 EMAIL_NOT_VERIFIED
 
   bool get loading => _loading;
   String? get error => _error;
@@ -26,6 +29,8 @@ class AuthController extends ChangeNotifier {
   String? get studentId => _studentId;
   bool get isEmailVerified => _isEmailVerified;
   String? get userEmail => _userEmail;
+  Map<String, List<String>>? get validationErrors => _validationErrors;
+  bool get emailNotVerified => _emailNotVerified;
 
   /// تهيئة TokenManager
   Future<void> _initTokenManager() async {
@@ -57,6 +62,8 @@ class AuthController extends ChangeNotifier {
   }) async {
     _loading = true;
     _error = null;
+    _validationErrors = null; // تنظيف أخطاء التحقق السابقة
+    _emailNotVerified = false; // إعادة الضبط قبل المحاولة
     notifyListeners();
     try {
       await _initTokenManager();
@@ -210,11 +217,71 @@ class AuthController extends ChangeNotifier {
       print('🎉 تم إكمال عملية تسجيل الدخول وحفظ البيانات بنجاح');
       print('📱 التطبيق جاهز للاستخدام');
       return true;
+    } on HttpException catch (e) {
+      // معالجة أخطاء HTTP المعروفة (422/401/403 وغيرها)
+      _loading = false;
+      _validationErrors = null;
+      try {
+        // نحاول قراءة الجسم كـ JSON
+        final body = e.body;
+        dynamic data;
+        try {
+          data = body.isNotEmpty ? jsonDecode(body) : null;
+        } catch (_) {
+          data = null;
+        }
+
+        if (e.statusCode == 422 && data is Map<String, dynamic>) {
+          // Laravel validation errors: { errors: { email: [...], password: [...] } }
+          final errs = data['errors'];
+          if (errs is Map<String, dynamic>) {
+            _validationErrors = errs.map((key, value) {
+              final list = (value is List)
+                  ? value.map((v) => v.toString()).toList()
+                  : [value.toString()];
+              return MapEntry(key.toString(), list);
+            });
+            // رسالة مجمعة مختصرة
+            final emailMsg = _validationErrors!['email']?.first;
+            final passMsg = _validationErrors!['password']?.first;
+            _error = emailMsg ?? passMsg ?? 'يرجى التحقق من المدخلات';
+          } else {
+            _error = 'يرجى التحقق من المدخلات';
+          }
+        } else if (e.statusCode == 401) {
+          // بيانات اعتماد غير صحيحة
+          String? msg;
+          if (data is Map<String, dynamic>) {
+            msg = data['message']?.toString();
+          }
+          _error = msg ?? 'بيانات الاعتماد غير صحيحة';
+        } else if (e.statusCode == 403) {
+          // 403 بدون EMAIL_NOT_VERIFIED
+          String? msg;
+          if (data is Map<String, dynamic>) {
+            msg = data['message']?.toString();
+          }
+          _error = msg ?? 'غير مسموح بتنفيذ العملية';
+        } else {
+          // أي خطأ آخر
+          String? msg;
+          if (data is Map<String, dynamic>) {
+            msg = data['message']?.toString();
+          }
+          _error = msg ?? 'حدث خطأ غير متوقع (${e.statusCode})';
+        }
+      } catch (_) {
+        _error = 'فشل الاتصال بالخادم (${e.statusCode})';
+      }
+      _emailNotVerified = false; // ليس هذا السيناريو
+      notifyListeners();
+      return false;
     } on EmailNotVerifiedException catch (e) {
       // حالة خاصة: الحساب غير مؤكد
       _loading = false;
       _error = e.message;
       _isEmailVerified = false;
+      _emailNotVerified = true;
       // حفظ معلومات المساعدة لإعادة الإرسال
       _userEmail = e.email ?? _userEmail;
       notifyListeners();
@@ -222,6 +289,7 @@ class AuthController extends ChangeNotifier {
     } catch (e) {
       _loading = false;
       _error = e.toString();
+      _emailNotVerified = false;
       notifyListeners();
       return false;
     }
