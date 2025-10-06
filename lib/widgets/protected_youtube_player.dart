@@ -16,12 +16,16 @@ class ProtectedYouTubePlayer extends StatefulWidget {
   final String videoUrl;
   final String videoTitle;
   final bool allowRotation; // التحكم في السماح بدوران الشاشة
+  final bool autoPlay;
+  final bool enableProtection;
 
   const ProtectedYouTubePlayer({
     super.key,
     required this.videoUrl,
     required this.videoTitle,
     this.allowRotation = false, // افتراضياً منع الدوران
+    this.autoPlay = false,
+    this.enableProtection = true,
   });
 
   @override
@@ -94,8 +98,8 @@ class _ProtectedYouTubePlayerState extends State<ProtectedYouTubePlayer>
     if (videoId != null) {
       _controller = YoutubePlayerController.fromVideoId(
         videoId: videoId,
-        autoPlay: false,
-        params: const YoutubePlayerParams(
+        autoPlay: widget.autoPlay,
+        params: YoutubePlayerParams(
           showControls: false,
           mute: false,
           showFullscreenButton: false,
@@ -434,18 +438,22 @@ class _ProtectedYouTubePlayerState extends State<ProtectedYouTubePlayer>
       body: Stack(
         children: [
           // Protection overlay that wraps the player (blocks top/bottom taps)
-          TouchBlockerOverlay(
-            topFraction: 0.20,
-            bottomFraction: 0.35, // ارتفاع المنطقة المحمية في الأسفل
-            blockTop: true,
-            blockBottom: true,
-            overlayColor: Colors.transparent,
-            child: SizedBox.expand(child: _buildPlayer()),
-          ),
+          if (widget.enableProtection)
+            TouchBlockerOverlay(
+              topFraction: 0.20,
+              bottomFraction: 0.35, // ارتفاع المنطقة المحمية في الأسفل
+              blockTop: true,
+              blockBottom: true,
+              overlayColor: Colors.transparent,
+              child: SizedBox.expand(child: _buildPlayer()),
+            )
+          else
+            SizedBox.expand(child: _buildPlayer()),
           // النص المتحرك للحماية
-          _buildWatermark(),
+          if (widget.enableProtection) _buildWatermark(),
           // لا يوجد غطاء أسود إضافي؛ الاقتراحات تبقى مرئية
-          RecordingShield(listenable: _recordingService.isCaptured),
+          if (widget.enableProtection)
+            RecordingShield(listenable: _recordingService.isCaptured),
         ],
       ),
     );

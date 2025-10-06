@@ -102,6 +102,8 @@ class _VideoBannerState extends State<VideoBanner> {
                 SmartYouTubePlayerManager(
                   videoUrl: 'https://www.youtube.com/watch?v=${_ids.first}',
                   videoTitle: 'مشاريع التخرج',
+                  autoPlay: true,
+                  enableProtection: false,
                 )
               else
                 PageView.builder(
@@ -110,6 +112,8 @@ class _VideoBannerState extends State<VideoBanner> {
                   itemBuilder: (context, index) => SmartYouTubePlayerManager(
                     videoUrl: 'https://www.youtube.com/watch?v=${_ids[index]}',
                     videoTitle: 'مشروع ${index + 1}',
+                    autoPlay: true,
+                    enableProtection: false,
                   ),
                 ),
 

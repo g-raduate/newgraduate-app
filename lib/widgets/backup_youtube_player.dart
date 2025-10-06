@@ -16,12 +16,16 @@ class BackupYouTubePlayer extends StatefulWidget {
   final String videoUrl;
   final String videoTitle;
   final bool allowRotation; // التحكم في السماح بدوران الشاشة
+  final bool autoPlay;
+  final bool enableProtection;
 
   const BackupYouTubePlayer({
     super.key,
     required this.videoUrl,
     required this.videoTitle,
     this.allowRotation = false, // افتراضياً منع الدوران
+    this.autoPlay = false,
+    this.enableProtection = true,
   });
 
   @override
@@ -61,10 +65,12 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
     }
 
     _initializePlayer();
-    _loadUserPhone();
-    _setupWatermarkAnimation();
-    _startWatermarkMovement();
-    _recordingService.init();
+    if (widget.enableProtection) {
+      _loadUserPhone();
+      _setupWatermarkAnimation();
+      _startWatermarkMovement();
+      _recordingService.init();
+    }
   }
 
   @override
@@ -78,8 +84,15 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     _controller.dispose();
-    _animationController.dispose();
-    _recordingService.dispose();
+    if (widget.enableProtection) {
+      // قد لا يكون تم تهيئته عندما تكون الحماية معطلة
+      try {
+        _animationController.dispose();
+      } catch (_) {}
+      try {
+        _recordingService.dispose();
+      } catch (_) {}
+    }
     super.dispose();
   }
 
@@ -88,8 +101,8 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
     if (videoId != null) {
       _controller = YoutubePlayerController(
         initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: false,
+        flags: YoutubePlayerFlags(
+          autoPlay: widget.autoPlay,
           mute: false,
           controlsVisibleAtStart: true,
           loop: false,
@@ -350,7 +363,10 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
   }
 
   Widget _buildWatermark() {
-    if (_userPhone == null) return const SizedBox.shrink();
+    // إيقاف العلامة المائية نهائياً إذا كانت الحماية معطلة
+    if (!widget.enableProtection || _userPhone == null) {
+      return const SizedBox.shrink();
+    }
 
     return AnimatedBuilder(
       animation: _offsetAnimation,
@@ -411,15 +427,19 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
       child: Stack(
         children: [
           // Protection overlay that wraps the player (blocks top only)
-          TouchBlockerOverlay(
-            topFraction: 0.20,
-            bottomFraction: 0.0, // لا توجد حماية في الأسفل للمشغل رقم 1
-            blockTop: true,
-            blockBottom: false, // تعطيل الحماية السفلى
-            overlayColor: Colors.transparent,
-            child: _buildPlayer(),
-          ),
-          RecordingShield(listenable: _recordingService.isCaptured),
+          if (widget.enableProtection)
+            TouchBlockerOverlay(
+              topFraction: 0.20,
+              bottomFraction: 0.0, // لا توجد حماية في الأسفل للمشغل رقم 1
+              blockTop: true,
+              blockBottom: false, // تعطيل الحماية السفلى
+              overlayColor: Colors.transparent,
+              child: _buildPlayer(),
+            )
+          else
+            _buildPlayer(),
+          if (widget.enableProtection)
+            RecordingShield(listenable: _recordingService.isCaptured),
         ],
       ),
     );
@@ -464,7 +484,7 @@ class _BackupYouTubePlayerState extends State<BackupYouTubePlayer>
         child: Stack(
           children: [
             SizedBox.expand(child: _buildPlayerUI()),
-            _buildWatermark(),
+            if (widget.enableProtection) _buildWatermark(),
             // زر الإغلاق
             Positioned(
               top: 40,

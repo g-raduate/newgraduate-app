@@ -11,6 +11,8 @@ class SmartYouTubePlayerManager extends StatefulWidget {
   final String videoTitle;
   final PlayerType? initialPlayer; // جعله اختياري لأننا سنجلب من API
   final bool allowRotation; // التحكم في السماح بدوران الشاشة
+  final bool autoPlay; // تشغيل تلقائي للفيديو
+  final bool enableProtection; // تمكين طبقة الحماية/العلامة المائية
 
   const SmartYouTubePlayerManager({
     super.key,
@@ -18,6 +20,8 @@ class SmartYouTubePlayerManager extends StatefulWidget {
     required this.videoTitle,
     this.initialPlayer, // لن يُستخدم إلا في حالة فشل API
     this.allowRotation = false, // افتراضياً منع الدوران (عمودي)
+    this.autoPlay = false,
+    this.enableProtection = true,
   });
 
   @override
@@ -125,6 +129,8 @@ class _SmartYouTubePlayerManagerState extends State<SmartYouTubePlayerManager> {
             videoUrl: widget.videoUrl,
             videoTitle: widget.videoTitle,
             allowRotation: widget.allowRotation,
+            autoPlay: widget.autoPlay,
+            enableProtection: widget.enableProtection,
           );
         } catch (e) {
           print('❌ خطأ في المشغل الأصلي: $e');
@@ -146,6 +152,8 @@ class _SmartYouTubePlayerManagerState extends State<SmartYouTubePlayerManager> {
             videoUrl: widget.videoUrl,
             videoTitle: widget.videoTitle,
             allowRotation: widget.allowRotation,
+            autoPlay: widget.autoPlay,
+            enableProtection: widget.enableProtection,
           );
         } catch (e) {
           print('❌ خطأ في المشغل الاحتياطي: $e');
@@ -163,6 +171,8 @@ class _SmartYouTubePlayerManagerState extends State<SmartYouTubePlayerManager> {
             videoUrl: widget.videoUrl,
             videoTitle: widget.videoTitle,
             allowRotation: widget.allowRotation,
+            autoPlay: widget.autoPlay,
+            enableProtection: widget.enableProtection,
           );
         } catch (e) {
           print('❌ خطأ في WebView Player: $e');

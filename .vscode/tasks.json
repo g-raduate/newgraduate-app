@@ -74,6 +74,43 @@
 				"$dart-pub"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Flutter pub get (release prep)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"pub",
+				"get"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build APK (release) now",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"apk",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Git add & commit release",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"git add -A && git commit -m \"chore(build): release APK/AAB for 1.2.1+4\" || echo \"no changes\""
+			],
+			"group": "build"
 		}
 	]
 }

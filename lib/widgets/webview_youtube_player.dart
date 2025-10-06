@@ -12,12 +12,16 @@ class WebViewYouTubePlayer extends StatefulWidget {
   final String videoUrl;
   final String videoTitle;
   final bool allowRotation; // التحكم في السماح بدوران الشاشة
+  final bool autoPlay; // تشغيل تلقائي
+  final bool enableProtection; // تمكين طبقة الحماية/العلامة المائية
 
   const WebViewYouTubePlayer({
     super.key,
     required this.videoUrl,
     required this.videoTitle,
     this.allowRotation = false, // افتراضياً منع الدوران
+    this.autoPlay = false,
+    this.enableProtection = true,
   });
 
   @override
@@ -193,7 +197,8 @@ class _WebViewYouTubePlayerState extends State<WebViewYouTubePlayer>
       }
 
       if (id == null || id.isEmpty) return url;
-      return 'https://www.youtube.com/embed/$id?rel=0&autoplay=0&modestbranding=1';
+      final auto = widget.autoPlay ? 1 : 0;
+      return 'https://www.youtube.com/embed/$id?rel=0&autoplay=$auto&modestbranding=1';
     } catch (e) {
       return url;
     }
@@ -218,14 +223,17 @@ class _WebViewYouTubePlayerState extends State<WebViewYouTubePlayer>
       body: Stack(
         children: [
           // Protection overlay that wraps the WebView (blocks top/bottom taps)
-          TouchBlockerOverlay(
-            topFraction: 0.20,
-            bottomFraction: 0.35, // زيادة ارتفاع المنطقة المحمية في الأسفل
-            blockTop: true,
-            blockBottom: true,
-            overlayColor: Colors.transparent,
-            child: WebViewWidget(controller: _controller),
-          ),
+          if (widget.enableProtection)
+            TouchBlockerOverlay(
+              topFraction: 0.20,
+              bottomFraction: 0.35, // زيادة ارتفاع المنطقة المحمية في الأسفل
+              blockTop: true,
+              blockBottom: true,
+              overlayColor: Colors.transparent,
+              child: WebViewWidget(controller: _controller),
+            )
+          else
+            WebViewWidget(controller: _controller),
 
           // Loading indicator above the WebView
           if (_isLoading)
@@ -236,7 +244,7 @@ class _WebViewYouTubePlayerState extends State<WebViewYouTubePlayer>
             ),
 
           // watermark above everything
-          if (_userPhone != null)
+          if (widget.enableProtection && _userPhone != null)
             AnimatedBuilder(
               animation: _offsetAnimation,
               builder: (context, child) {
@@ -281,7 +289,8 @@ class _WebViewYouTubePlayerState extends State<WebViewYouTubePlayer>
           ),
 
           // Shield against iOS screen recording
-          RecordingShield(listenable: _recordingService.isCaptured),
+          if (widget.enableProtection)
+            RecordingShield(listenable: _recordingService.isCaptured),
         ],
       ),
     );
