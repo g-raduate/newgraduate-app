@@ -47,24 +47,46 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  /// جلب قائمة المعاهد
-  Future<void> _loadInstitutes() async {
-    setState(() => _isLoadingInstitutes = true);
+  /// جلب قائمة المعاهد مع إعادة محاولة واحدة في حال الفشل
+  Future<void> _loadInstitutes({int attempt = 1}) async {
+    if (attempt == 1) setState(() => _isLoadingInstitutes = true);
     try {
       final institutes = await InstitutesService.getAllInstitutes();
       print('📱 SignupScreen: تم استلام ${institutes.length} معهد');
+      if (!mounted) return;
       setState(() {
         _institutes = institutes;
         _isLoadingInstitutes = false;
       });
     } catch (e) {
-      print('📱 SignupScreen: خطأ في جلب المعاهد: $e');
-      setState(() => _isLoadingInstitutes = false);
+      print('📱 SignupScreen: خطأ في جلب المعاهد (محاولة $attempt): $e');
+      // إعادة محاولة تلقائية مرة واحدة
+      if (attempt < 2) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تعذر جلب المعاهد، سيتم إعادة المحاولة...'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        await Future.delayed(const Duration(milliseconds: 800));
+        await _loadInstitutes(attempt: attempt + 1);
+        return;
+      }
+
       if (mounted) {
+        setState(() => _isLoadingInstitutes = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ في جلب المعاهد: $e'),
             backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'إعادة المحاولة',
+              textColor: Colors.white,
+              onPressed: () => _loadInstitutes(),
+            ),
           ),
         );
       }
@@ -314,6 +336,18 @@ class _SignupScreenState extends State<SignupScreen> {
                         )
                       : const Text('اختر المعهد'),
                 ),
+                if (!_isLoadingInstitutes && _institutes.isEmpty) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed:
+                          _isLoadingInstitutes ? null : () => _loadInstitutes(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('إعادة تحميل المعاهد'),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Text('كلمة السر',
                     style: Theme.of(context)

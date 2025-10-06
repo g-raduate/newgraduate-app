@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:newgraduate/features/auth/data/auth_repository.dart';
 import 'package:newgraduate/services/api_client.dart'
-  show EmailNotVerifiedException, HttpException;
+    show EmailNotVerifiedException, HttpException;
 import 'package:newgraduate/services/token_manager.dart';
 import 'package:newgraduate/services/student_service.dart';
 import 'package:newgraduate/services/cache_manager.dart';

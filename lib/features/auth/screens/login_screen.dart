@@ -146,8 +146,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       decoration:
-              decoration('ادخل البريد هنا', icon: Icons.email)
-                .copyWith(errorText: _serverEmailError),
+                          decoration('ادخل البريد هنا', icon: Icons.email)
+                              .copyWith(errorText: _serverEmailError),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'يرجى ادخال النص هنا'
                           : null,
