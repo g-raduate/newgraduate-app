@@ -33,13 +33,22 @@ void main() async {
   // تحقق من المحاكي قبل تشغيل التطبيق (إلا إذا كان في وضع التطوير)
   bool shouldBlockEmulator = true;
   
+  print('🔍 فحص إعدادات التطوير...');
+  print('📊 underDevelopmentOverride = ${AppConstants.underDevelopmentOverride}');
+  
   // إذا كان في وضع التطوير، اسمح بالمحاكي
   if (AppConstants.underDevelopmentOverride == true) {
     shouldBlockEmulator = false;
     print('🔧 وضع التطوير مفعل - السماح بالمحاكي');
+  } else {
+    print('⚠️ وضع التطوير غير مفعل - سيتم فحص المحاكي');
   }
   
+  print('🎯 shouldBlockEmulator = $shouldBlockEmulator');
+  
   final isEmu = shouldBlockEmulator ? await EmulatorGuard.isEmulator() : false;
+  
+  print('📱 هل هو محاكي؟ $isEmu');
 
   runApp(MyApp(isEmulator: isEmu));
 }
