@@ -6,6 +6,15 @@ class RegistrationErrorHandler {
 
     // خطأ 422 - بيانات غير صحيحة أو مكررة
     if (errorString.contains('HttpException(422)')) {
+      // دعم رسائل Laravel المترجمة كـ validation.unique
+      if (errorString.contains('validation.unique')) {
+        if (errorString.contains('email')) {
+          return 'البريد الإلكتروني مستخدم من قبل. يرجى استخدام بريد آخر.';
+        }
+        if (errorString.contains('phone')) {
+          return 'رقم الهاتف مستخدم من قبل. يرجى استخدام رقم آخر.';
+        }
+      }
       if (errorString.contains('email') && errorString.contains('phone')) {
         return 'البريد الإلكتروني ورقم الهاتف مستخدمان من قبل. يرجى استخدام بيانات أخرى.';
       } else if (errorString.contains('email has already been taken') ||

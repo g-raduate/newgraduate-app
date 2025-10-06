@@ -300,6 +300,7 @@ class AuthController extends ChangeNotifier {
     required String name,
     required String email,
     required String password,
+    required String passwordConfirmation,
     required String phone,
     required String instituteId,
   }) async {
@@ -318,6 +319,7 @@ class AuthController extends ChangeNotifier {
         name: name,
         email: email,
         password: password,
+        passwordConfirmation: passwordConfirmation,
         phone: phone,
         instituteId: instituteId,
       );

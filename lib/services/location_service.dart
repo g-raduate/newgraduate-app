@@ -43,6 +43,33 @@ class LocationService extends ChangeNotifier {
     }
   }
 
+  /// تحديث الموقع الآن بشكل صامت دون طلب صلاحيات (إن كانت مفعلة)
+  /// يعيد استجابة السيرفر أو null إذا لم تكن الخدمة/الصلاحية متاحة
+  Future<Map<String, dynamic>?> refreshLocationNow({bool silent = true}) async {
+    try {
+      // تأكد من الحالة أولاً
+      await checkLocationStatus();
+
+      if (!_isLocationServiceEnabled) {
+        if (!silent) print('⚠️ [LocationService] خدمة الموقع غير مفعلة');
+        return null;
+      }
+      if (!_hasLocationPermission) {
+        if (!silent) print('⚠️ [LocationService] صلاحية الموقع غير مفعلة');
+        return null;
+      }
+
+      final resp = await _updateLocation();
+      if (!silent) {
+        print('📨 [LocationService] استجابة تحديث الموقع (refreshNow): $resp');
+      }
+      return resp;
+    } catch (e) {
+      print('❌ [LocationService] refreshLocationNow error: $e');
+      return null;
+    }
+  }
+
   /// طلب صلاحية الموقع
   Future<bool> requestLocationPermission(BuildContext context) async {
     try {
@@ -163,6 +190,8 @@ class LocationService extends ChangeNotifier {
 
       // إرسال الموقع للسيرفر
       final response = await _sendLocationToServer(position);
+      // طباعة الرسبونس بعد إتمام تحديث الموقع
+      print('📨 [LocationService] استجابة تحديث الموقع: $response');
 
       return response;
     } catch (e) {

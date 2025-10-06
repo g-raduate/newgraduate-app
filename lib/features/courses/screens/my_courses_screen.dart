@@ -5,6 +5,7 @@ import 'package:newgraduate/services/courses_service.dart';
 import 'package:newgraduate/services/cache_manager.dart';
 import 'package:newgraduate/services/token_expired_handler.dart';
 import 'package:newgraduate/features/courses/screens/course_detail_screen.dart';
+import 'package:newgraduate/services/location_service.dart';
 
 class MyCoursesScreen extends StatefulWidget {
   const MyCoursesScreen({super.key});
@@ -88,6 +89,14 @@ class _MyCoursesScreenState extends State<MyCoursesScreen> {
 
   Future<void> _refreshCourses() async {
     try {
+      // حاول تحديث الموقع وطباعة الاستجابة قبل تحديث الدورات
+      try {
+        final resp = await LocationService().refreshLocationNow(silent: false);
+        print('📨 [MyCourses] استجابة تحديث الموقع من زر التحديث: $resp');
+      } catch (e) {
+        print('⚠️ [MyCourses] تعذر تحديث الموقع قبل تحديث الدورات: $e');
+      }
+
       final courses =
           await CoursesService.getStudentCourses(forceRefresh: true);
       if (courses != null) {

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:newgraduate/services/api_client.dart';
+import 'dart:convert';
 import 'package:newgraduate/utils/prefs_keys.dart';
 
 class AuthRepository {
@@ -112,6 +113,7 @@ class AuthRepository {
     required String name,
     required String email,
     required String password,
+    required String passwordConfirmation,
     required String phone,
     required String instituteId,
     String role = 'student',
@@ -122,6 +124,7 @@ class AuthRepository {
       'name': name,
       'email': email,
       'password': password,
+      'password_confirmation': passwordConfirmation,
       'phone': phone,
       'institute_id': instituteId,
       'role': role,
@@ -157,10 +160,49 @@ class AuthRepository {
     } catch (e) {
       print('❌ AuthRepository.register() - خطأ: $e');
 
-      // تحسين رسائل الخطأ
-      String errorString = e.toString();
+      // معالجة مهيكلة لأخطاء التحقق 422 القادمة من الخادم
+      if (e is HttpException) {
+        if (e.statusCode == 422) {
+          try {
+            final body = e.body;
+            final decoded = jsonDecode(body);
+            if (decoded is Map<String, dynamic> &&
+                decoded['errors'] is Map<String, dynamic>) {
+              final raw = decoded['errors'] as Map<String, dynamic>;
+              // بناء رسالة مجمعة مفهومة
+              final parts = <String>[];
+              void addFirst(String key, String label) {
+                final val = raw[key];
+                if (val is List && val.isNotEmpty) {
+                  parts.add(val.first.toString());
+                } else if (val != null) {
+                  parts.add(val.toString());
+                }
+              }
+
+              addFirst('email', 'البريد');
+              addFirst('phone', 'الهاتف');
+              addFirst('password', 'كلمة السر');
+              addFirst('password_confirmation', 'تأكيد كلمة السر');
+              final joined = parts.isNotEmpty
+                  ? parts.join('، ')
+                  : (decoded['message']?.toString() ??
+                      'البيانات المدخلة غير صحيحة');
+              throw Exception('HttpException(422): $joined');
+            }
+          } catch (parseErr) {
+            // سقط parsing؛ نكمل بالأسلوب النصي التقليدي
+          }
+        } else if (e.statusCode == 500) {
+          print('⚠️ خطأ 500: قد يكون مشكلة في إعدادات البريد الإلكتروني');
+          throw Exception(
+              'HttpException(500): خطأ مؤقت في الخادم - قد تكون مشكلة في إرسال البريد');
+        }
+      }
+
+      // تحسين رسائل الخطأ النصية كبديل
+      final errorString = e.toString();
       if (errorString.contains('HttpException(422)')) {
-        // استخراج تفاصيل أكثر من خطأ 422
         if (errorString.contains('email') && errorString.contains('phone')) {
           throw Exception(
               'HttpException(422): البريد الإلكتروني ورقم الهاتف مستخدمان من قبل');
@@ -171,15 +213,7 @@ class AuthRepository {
           throw Exception('HttpException(422): رقم الهاتف مستخدم من قبل');
         }
       } else if (errorString.contains('HttpException(500)')) {
-        // خطأ 500 - عادة مشكلة في الخادم أو البريد الإلكتروني
         print('⚠️ خطأ 500: قد يكون مشكلة في إعدادات البريد الإلكتروني');
-        print('🔧 نصائح لحل المشكلة:');
-        print('   1. تحقق من إعدادات SendGrid في الخادم');
-        print('   2. تأكد من أن البريد المرسل مُعتمد في SendGrid');
-        print('   3. تحقق من متغيرات البيئة للبريد الإلكتروني');
-        if (errorString.contains('Sender Identity')) {
-          print('   4. المشكلة: البريد المرسل غير مُعتمد في SendGrid');
-        }
         throw Exception(
             'HttpException(500): خطأ مؤقت في الخادم - قد تكون مشكلة في إرسال البريد');
       }

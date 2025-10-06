@@ -22,6 +22,8 @@ class ApiClient {
     final h = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json', // مطلوب من الباك إند
+      // إضافة User-Agent قد يقلل من حظر بعض مزودات الحماية (مثل Cloudflare)
+      'User-Agent': 'GraduateApp/1.0 (Flutter; Android/iOS)',
       if (_bearer?.isNotEmpty == true) 'Authorization': 'Bearer $_bearer',
     };
     if (extra != null) h.addAll(extra);
@@ -52,6 +54,20 @@ class ApiClient {
     }
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
+      // تأكد أن الاستجابة JSON وليست صفحة HTML (مثل صفحة حماية Cloudflare)
+      final contentType = res.headers['content-type'] ?? '';
+      final bodyTrim = res.body.trim();
+      final looksHtml = bodyTrim.startsWith('<!DOCTYPE html') ||
+          bodyTrim.startsWith('<html') ||
+          contentType.contains('text/html');
+      if (looksHtml) {
+        debugPrint(
+            '[ApiClient] ⚠️ 2xx لكن المحتوى HTML (قد تكون صفحة حماية أو إعادة توجيه).');
+        final snippet =
+            bodyTrim.length > 200 ? bodyTrim.substring(0, 200) : bodyTrim;
+        throw HttpException(
+            res.statusCode, 'Non-JSON HTML response received: $snippet');
+      }
       try {
         return jsonDecode(res.body) as Map<String, dynamic>;
       } catch (e) {
@@ -100,8 +116,26 @@ class ApiClient {
     final uri = Uri.parse('$resolved$path');
     debugPrint('[ApiClient] GET ${uri.toString()}');
     final res = await _client.get(uri, headers: _headers(extra: headers));
-    debugPrint('[ApiClient] <- ${res.statusCode} ${res.body}');
+    debugPrint('[ApiClient] <- ${res.statusCode}');
+    debugPrint('[ApiClient] Response headers: ${res.headers}');
+    if (res.body.trim().startsWith('<')) {
+      debugPrint(
+          '[ApiClient] ⚠️ Response is HTML for GET: ${res.body.substring(0, res.body.length.clamp(0, 500))}');
+    } else {
+      debugPrint('[ApiClient] Response body: ${res.body}');
+    }
     if (res.statusCode >= 200 && res.statusCode < 300) {
+      final contentType = res.headers['content-type'] ?? '';
+      final bodyTrim = res.body.trim();
+      final looksHtml = bodyTrim.startsWith('<!DOCTYPE html') ||
+          bodyTrim.startsWith('<html') ||
+          contentType.contains('text/html');
+      if (looksHtml) {
+        final snippet =
+            bodyTrim.length > 200 ? bodyTrim.substring(0, 200) : bodyTrim;
+        throw HttpException(
+            res.statusCode, 'Non-JSON HTML response received: $snippet');
+      }
       return jsonDecode(res.body) as Map<String, dynamic>;
     }
     throw HttpException(res.statusCode, res.body);

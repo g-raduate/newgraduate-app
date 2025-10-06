@@ -1,0 +1,79 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flutter pub get",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"pub",
+				"get"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build APK",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"apk",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build APK (release)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"apk",
+				"--release",
+				"--no-tree-shake-icons"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build AAB (release)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"appbundle",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build appbundle --release (2)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"appbundle",
+				"--release",
+				"--build-name",
+				"1.2.1",
+				"--build-number",
+				"4"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		}
+	]
+}

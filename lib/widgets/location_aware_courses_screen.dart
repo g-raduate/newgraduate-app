@@ -49,12 +49,25 @@ class _LocationAwareCoursesScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              locationService.checkLocationStatus();
+            onPressed: () async {
+              // تحديث الحالة أولاً ثم محاولة إرسال موقع محدث
+              await locationService.checkLocationStatus();
+              final resp = await locationService.refreshLocationNow();
+
+              if (!mounted) return;
+
+              String message = 'تم تحديث حالة الموقع';
+              Color color = Colors.blue;
+              if (resp != null) {
+                message = '📍 تم إرسال موقعك بنجاح';
+                color = Colors.green;
+              }
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تحديث حالة الموقع'),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(message),
+                  backgroundColor: color,
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
