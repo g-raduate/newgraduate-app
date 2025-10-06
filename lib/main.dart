@@ -30,8 +30,16 @@ void main() async {
   await DebugHelper.forceUseGlobalUrl();
   print('🚀 تم تنظيف البيانات وإجبار استخدام المتغير العالمي');
 
-  // تحقق من المحاكي قبل تشغيل التطبيق
-  final isEmu = await EmulatorGuard.isEmulator();
+  // تحقق من المحاكي قبل تشغيل التطبيق (إلا إذا كان في وضع التطوير)
+  bool shouldBlockEmulator = true;
+  
+  // إذا كان في وضع التطوير، اسمح بالمحاكي
+  if (AppConstants.underDevelopmentOverride == true) {
+    shouldBlockEmulator = false;
+    print('🔧 وضع التطوير مفعل - السماح بالمحاكي');
+  }
+  
+  final isEmu = shouldBlockEmulator ? await EmulatorGuard.isEmulator() : false;
 
   runApp(MyApp(isEmulator: isEmu));
 }
@@ -111,8 +119,9 @@ class MyApp extends StatelessWidget {
                 ],
               );
             },
-            home:
-                isEmulator ? const EmulatorBlockScreen() : const SplashScreen(),
+            home: isEmulator 
+                ? const EmulatorBlockScreen() 
+                : const SplashScreen(),
             routes: {
               '/login': (context) => const LoginScreen(),
             },
