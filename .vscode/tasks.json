@@ -111,6 +111,48 @@
 				"git add -A && git commit -m \"chore(build): release APK/AAB for 1.2.1+4\" || echo \"no changes\""
 			],
 			"group": "build"
+		},
+		{
+			"label": "Flutter build appbundle --release (user request)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"appbundle",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Rebuild APK release",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"apk",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter build AAB (release) (on-demand)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"build",
+				"appbundle",
+				"--release"
+			],
+			"problemMatcher": [
+				"$dart-pub"
+			],
+			"group": "build"
 		}
 	]
 }

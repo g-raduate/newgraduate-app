@@ -104,8 +104,17 @@ class MyApp extends StatelessWidget {
               final bool underDevelopment =
                   AppConstants.underDevelopmentOverride ?? storedUnderDev;
 
-              // تطبيق علم الأمان على أندرويد (لاقط شاشة) إذا الحماية مفعلة
-              PrivacyGuard.setSecureFlag(!underDevelopment);
+              // تطبيق الحماية على كلا المنصتين
+              if (!underDevelopment) {
+                // Android: FLAG_SECURE لمنع لقطات الشاشة والتسجيل
+                PrivacyGuard.setSecureFlag(true);
+
+                // iOS: تفعيل الحماية المتقدمة (App Switcher + Screen Recording + Screenshot)
+                PrivacyGuard.enableIOSProtection();
+              } else {
+                // في وضع التطوير: تعطيل الحماية
+                PrivacyGuard.disableAllProtections();
+              }
 
               // تهيئة مدير الأمان الجديد بعد انتهاء السبلاش سكرين
               WidgetsBinding.instance.addPostFrameCallback((_) {
